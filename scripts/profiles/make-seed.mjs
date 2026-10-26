@@ -47,6 +47,7 @@ function client2() {
 
 const seeds = { client1: convertStateUnit(buildDemoState(), 'lb'), client2: convertStateUnit(client2(), 'lb') }
 for (const [uid, s] of Object.entries(seeds)) {
+  s.effort = 'none'   // no RIR/RPE column (the demo turns it on)
   s._ts = Date.now()
   writeFileSync(dataDir + `state-${uid}.json`, JSON.stringify(s))
   console.log(`data/state-${uid}.json: ${s.workouts.length} workouts, ${s.routines.length} routines, ${s.bodyweight.length} weigh-ins`)
