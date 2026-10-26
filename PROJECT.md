@@ -81,6 +81,6 @@ Compose always builds from this repo (`pull_policy: build`). Never use upstream'
 - [x] Coach: stock UI, acting on the selected client's data
 - [x] Client: two tabs — Today (workout screen, no weigh-in, no clock) and Stats
 - [x] Client data in the repo, synced through the server
-- [x] Tests: API 656 pass; frontend 5,562 pass except the upstream day-note test above
+- [x] Tests: API 653/653 pass (3 skipped); frontend 5,566/5,567 pass — the one failure is the upstream day-note test above
 - [ ] Owner to describe the "handful of other small features" for clients
 - [ ] Decide on hosting so phones can reach it from anywhere
