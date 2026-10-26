@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { MOBILE } from './lib/mobile.js'
 import { useStore } from './store/useStore.js'
+import { useUI } from './store/useUI.js'
 import { startMediaSync } from './lib/media-sync.js'
 import { startNativeKeyboard } from './lib/native-keyboard.js'
 import './index.css'
@@ -23,6 +24,20 @@ const showPicker = saved => new Promise(resolve => {
   const root = createRoot(el)
   root.render(<ProfilePicker current={saved} onPick={key => { root.unmount(); el.remove(); resolve(profileFor(key)) }} />)
   hideBoot()
+})
+
+// Coach/client fork: workouts started before the client side went timer-free (2026-10-26) are
+// cancelled, on whichever profile opens first — Haitham's open Push Day among them. Checked once
+// boot is done: a workout set aside when the phone switched clients comes back during boot.
+const TIMER_FREE_SINCE = Date.parse('2026-10-26T22:08:00Z')
+const stopWatching = useStore.subscribe(st => {
+  if (!st.ready) return
+  stopWatching()
+  const A = st.S.active
+  if (!A || A.editingWorkoutId || A.backfill || !(A.start < TIMER_FREE_SINCE)) return
+  st.update(s => { s.active = null })
+  useUI.getState().stopRest()
+  useUI.getState().stopWork()
 })
 
 // Coach/client fork: the app boots once the profile is chosen and its client signed in.

@@ -935,7 +935,8 @@ function ActiveWorkout() {
   const lean = isClientUI() && !editing
   // A past workout has no rest to time — the sets were done days ago. The work timer for
   // timed sets stays, since counting a hold is how its duration gets entered.
-  const startRest = (A.backfill || editing) ? () => {} : liveRest
+  // Coach/client fork (PROJECT.md): no rest timers on the client side.
+  const startRest = (A.backfill || editing || isClientUI()) ? () => {} : liveRest
   const units = supersetUnits(A.entries)
   const cur = Number.isInteger(A.cur)
     ? Math.min(Math.max(A.cur, 0), Math.max(0, A.entries.length - 1))

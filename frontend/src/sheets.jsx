@@ -44,6 +44,7 @@ import { isPyramid, normalizePyramid, normalizePyramidRest, normalizePyramidWeig
 import { MOBILE, shareExport, shareExportBlob, printHtml } from './lib/mobile.js'
 import { speedUnitOf, toSpeed, fromSpeed } from './lib/speed.js'
 import { buildCompletedWorkout, sessionEnd } from './lib/finish-workout.js'
+import { isClientUI } from './profiles/profiles.js'
 import { refillAfter } from './lib/rotation.js'
 import { isWarmupRow, hasCompletedWork } from './lib/workout-model.js'
 import { saveSessionAsRoutine } from './lib/session-routines.js'
@@ -3486,7 +3487,8 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
     <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
     <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
     <div className="tiles" style={{ textAlign: 'start' }}>
-      <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>
+      {/* Coach/client fork (PROJECT.md): nothing on the client side is timed. */}
+      {!isClientUI() && <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>}
       <div className="tile"><div className="l">{t('Volume')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtVol(w.vol, st.unit)}</div></div>
       <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{setsWorkCount(setsDone(w), workSetsDone(w))}</div></div>
       <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '–'}</div></div>
@@ -3539,10 +3541,21 @@ export function finishWorkoutSheet({ onDiscard } = {}) {
 // Finish and save without a question: the Apple Watch's Finish (lib/watch-sync.js) runs exactly
 // what the phone's Finish and save runs.
 export const finishWorkoutNow = () => doFinishWorkout()
-function doFinishWorkout() {
+// Coach/client fork (PROJECT.md): a client's day left open saves itself the next time the app
+// opens — no summary, no sound (profiles/ClientToday.jsx).
+export const finishWorkoutQuietly = () => doFinishWorkout({ quiet: true })
+function doFinishWorkout({ quiet = false } = {}) {
   const st = S()
-  const A = st.active
+  let A = st.active
   if (!A) return
+  // Coach/client fork: a client never starts a workout, they open their day and tick sets. The
+  // workout runs from the first tick (each tick records when, sessionEnd reads the last one), so
+  // its length is the time they actually trained, however long the page sat open.
+  if (isClientUI() && !A.backfill && !A.editingWorkoutId) {
+    const ticks = A.entries.flatMap(e => e.sets || []).map(s => s.at).filter(Number.isFinite)
+    const end = sessionEnd(A)
+    A = { ...A, start: ticks.length ? Math.min(end, ...ticks) : end }
+  }
   const past = !!A.backfill
   const prs = []
   const e1prs = []
@@ -3595,6 +3608,7 @@ function doFinishWorkout() {
   // on Discard: its bar is app-wide and would chime over the summary, and its callback writes
   // into s.active, which is gone. What it held is not logged, like any set left unchecked.
   useUI.getState().stopWork()
+  if (quiet) return
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
   ui().openSheet(close => <FinishSummary w={shown} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
 }

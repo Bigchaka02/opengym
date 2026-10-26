@@ -23,7 +23,7 @@ A mobile-friendly **web app** (no install, no server) for one **coach** and thei
 - **GitHub Pages hosts the app; the repo is the database.** Each client is one file on `main`: `data/state-client1.json` (Haitham), `data/state-client2.json` (Aliaa) — names in `data/profiles.json`. Weights are in **lb**. Phones read and write those files directly through the GitHub API, so every synced change is a commit and every phone sees the same data — no server anywhere.
 - **Profile picker** on every fresh launch: *Coach*, *Haitham*, *Aliaa*. Reloads within the same launch don't ask again.
 - **Profile icon** at the top left of every page, with the profile's name (or "Coach") beside it, reopens the picker. For the coach, a **client dropdown** sits under it. The coach is simply working in whichever client's file the dropdown shows.
-- **Client Today tab** opens today's assigned session directly on the stock workout screen, reworked:
+- **Client Today tab** is the day's assigned workout as a checklist, on the stock workout screen. Nothing is started or timed: opening the tab lays out today's exercises, the client ticks sets off and taps Finish. No session clock, no rest timer, no Duration on the summary; the saved workout spans the first tick to the last (so Stats' time heatmap stays real). A day left open closes itself the next time the app opens on a later day — saved if anything was ticked, dropped if not. Reworked layout:
   - **Header:** profile icon + name on the left (in place of the ⌄ minimize button), session name + set count in the exact centre of the screen, ⋯ on the right.
   - **Finish** sits at the right end of the exercise-number chips (1 2 3 …), pinned while the chips scroll.
   - **Removed:** weigh-in prompt, session clock, Prev/Next (swipe between exercise cards instead), Add exercise, Add session note, the bottom Finish button, and the "Plan: 4 × 8" / "Last time …" / progression lines.
@@ -74,6 +74,8 @@ If the key expires or is revoked, the app asks for a new one.
 | `frontend/src/App.jsx` | Profile bar on every page; client routes + two-tab bar; wait for boot after a profile switch |
 | `frontend/src/views/Workout.jsx` | For a client's live session: profile in the header, centred title, Finish beside the chips; hides the clock, ⌄, Prev/Next, Add exercise, session note, bottom Finish, plan / last time / progression lines |
 | `frontend/src/views/FocusView.jsx` | For a client: hides "Last time", the progression button and the plan badge |
+| `frontend/src/sheets.jsx` | Client finish: workout spans first → last tick; quiet save for a day left open; no Duration tile for clients |
+| `frontend/src/main.jsx` (startup) | Cancels workouts started before the client side went timer-free |
 | `frontend/src/index.css` | Overscroll bounce on (vertical `overscroll-behavior: contain` instead of `none`) |
 | `frontend/src/store/useStore.js` | New profiles default to lb (`DEF.unit`) |
 | 8 upstream tests (`DEF.unit = 'kg'` at the top) | Written for upstream's kg default; pinned to kg so they keep testing what they were written for |
@@ -85,9 +87,8 @@ If the key expires or is revoked, the app asks for a new one.
 
 - **Pounds everywhere:** openGym stores every weight (sets, body weight, goals, plates, bars, dumbbells) in the profile's own unit and does its progression, plate math and charts in it. Both clients are lb, and new profiles now start in lb, so input, storage and output are all lb. The fatigue and structural-balance models convert to kg internally for their formulas but only ever show percentages. Body tape measurements are stored in cm and shown in inches. Settings → Units still offers kg (stock coach screen) — leave it on lb.
 - **History wiped (2026-10-26):** all placeholder and test history is gone for both clients; their Push/Pull/Legs plans and settings remain. With no history, the first session of each exercise starts at 0 lb until the coach sets a starting weight in the plan or the client enters one; after that, openGym's progression takes over.
-- **"The timer"** was read as the session clock in the workout header — hidden for clients. The **rest timer** between sets still runs (it's a core feature). Say the word to remove it too.
-- **Opening the Today tab starts the session** (that's what "show the begin-workout screen" means). So the logged duration runs from when the client opened the tab, not their first set.
-- **In-progress workouts stay on the phone** they were started on (upstream behaviour); the repo gets the workout when it's finished. On one shared test phone, a session started as a client still shows as running when you switch to the coach for that same client.
+- **No timing on the client side (2026-10-26):** the session clock, rest timer and summary Duration are off for clients. Under the hood the open day is still openGym's "active workout" (kept on the phone, never synced until Finish); switching away from a client profile drops it if nothing was ticked, so a shared phone doesn't show the coach a workout "in progress". Workouts started before this change (Haitham's open Push Day) are cancelled once on load (`TIMER_FREE_SINCE` in `frontend/src/main.jsx`).
+- **Coach side unchanged:** the coach can still start a timed workout with a client in the stock UI.
 - **Two phones editing the same client at the same moment** is handled: GitHub refuses a save over a file that changed since that phone read it, and the app merges both changes and saves again.
 - **Switching profile or client reloads the page.** Anything not yet saved is pushed first.
 - **Coach Settings → Sign out** has nothing to sign out of here; reloading the page puts you back.

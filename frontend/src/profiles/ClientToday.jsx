@@ -1,14 +1,18 @@
-// Coach/client fork (PROJECT.md): the client's "Today" tab. Today's assigned session opens
-// straight on the stock workout screen — what Start shows, minus the weigh-in question (and the
-// screen hides its clock for a client, views/Workout.jsx). A rest day, or a session already
-// logged today, gets one quiet card instead of the stock screen's workout picker.
-import { useEffect } from 'react'
+// Coach/client fork (PROJECT.md): the client's "Today" tab — the day's assigned workout as a
+// checklist on the stock workout screen. Nothing is started or timed: opening the tab lays out
+// today's exercises, the client ticks sets off and taps Finish. The screen hides the clock and
+// runs no rest timers for a client (views/Workout.jsx), and the saved workout spans the first tick
+// to the last (sheets.jsx doFinishWorkout). A day left open closes itself the next time the app
+// opens on a later day: saved if anything was ticked, dropped if not. A rest day, or a day already
+// logged, gets one quiet card instead.
+import { useEffect, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay } from '../lib/history.js'
+import { useUI } from '../store/useUI.js'
+import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, setsDoneActive } from '../lib/history.js'
 import { todayISO, DAYN } from '../lib/format.js'
 import { queueOf } from '../lib/queue.js'
 import { t, dateLocale } from '../lib/i18n.js'
-import { beginWorkout } from '../sheets.jsx'
+import { beginWorkout, finishWorkoutQuietly } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import Workout from '../views/Workout.jsx'
 
@@ -22,19 +26,41 @@ function loggedToday(S) {
   return (routines.every(r => covered(r.id)) && logged.at(-1)) || null
 }
 
+// A day that is over: kept if anything on it was ticked, dropped if not.
+export function closeEarlierDay() {
+  const A = useStore.getState().S.active
+  if (!A || A.editingWorkoutId || A.d === todayISO()) return
+  if (setsDoneActive(A) > 0) finishWorkoutQuietly()
+  else {
+    useStore.getState().update(s => { s.active = null })
+    useUI.getState().stopRest()
+    useUI.getState().stopWork()
+  }
+}
+
 export default function ClientToday() {
   const S = useStore(s => s.S)
+  // Coming back to the app (it may have sat open past midnight) reads the day again.
+  const [, wake] = useState(0)
+  useEffect(() => {
+    const again = () => { if (document.visibilityState !== 'hidden') wake(n => n + 1) }
+    document.addEventListener('visibilitychange', again)
+    window.addEventListener('focus', again)
+    return () => { document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again) }
+  }, [])
   const today = todayISO()
+  const earlier = !!S.active && !S.active.editingWorkoutId && S.active.d !== today
   const planned = effectiveRoutines(S, today).some(r => r.ex.length)
   const done = loggedToday(S)
   const start = !S.active && planned && !done
+  useEffect(() => { if (earlier) closeEarlierDay() }, [earlier])
   useEffect(() => {
     // The live store, not this render's: StrictMode runs this twice, and the first run started it.
     if (start && !useStore.getState().S.active) beginWorkout(effectiveRoutineIds(useStore.getState().S, todayISO()), null)
   }, [start])
 
+  if (earlier || start) return null
   if (S.active) return <Workout />
-  if (start) return null
   const next = nextTrainingDay(S, today)
   return <div className="narrow">
     <div className="hdr"><div>
