@@ -8,6 +8,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Workout from './Workout.jsx'
 import { DEF, useStore } from '../store/useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 import { useUI } from '../store/useUI.js'
 import { buildCompletedWorkout } from '../lib/finish-workout.js'
 import { nextPrescription } from '../lib/progression.js'

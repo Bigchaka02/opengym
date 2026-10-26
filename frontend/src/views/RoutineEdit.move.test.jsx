@@ -8,6 +8,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import RoutineEdit from './RoutineEdit.jsx'
 import { DEF, useStore } from '../store/useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 import { _setLangState } from '../lib/i18n-core.js'
 import de from '../locales/de.js'
 import { buildPlanBundle, parsePlan } from '../lib/plan-share.js'

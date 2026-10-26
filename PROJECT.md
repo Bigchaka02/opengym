@@ -75,12 +75,15 @@ If the key expires or is revoked, the app asks for a new one.
 | `frontend/src/views/Workout.jsx` | For a client's live session: profile in the header, centred title, Finish beside the chips; hides the clock, ⌄, Prev/Next, Add exercise, session note, bottom Finish, plan / last time / progression lines |
 | `frontend/src/views/FocusView.jsx` | For a client: hides "Last time", the progression button and the plan badge |
 | `frontend/src/index.css` | Overscroll bounce on (vertical `overscroll-behavior: contain` instead of `none`) |
+| `frontend/src/store/useStore.js` | New profiles default to lb (`DEF.unit`) |
+| 8 upstream tests (`DEF.unit = 'kg'` at the top) | Written for upstream's kg default; pinned to kg so they keep testing what they were written for |
 | `api/server.js`, `api/openapi.yaml`, `api/test/*profiles*`, `api/package.json` | Self-hosted mode: `PROFILES` accounts, `GET /api/profiles`, `POST /api/profiles/login`, tests |
 | `docker-compose.yml` | Builds local images instead of pulling upstream ones |
 | `.gitignore`, `data/`, `scripts/profiles/*` | Client data in the repo, its generator, the Pages deploy script |
 
 ## Notes and decisions
 
+- **Pounds everywhere:** openGym stores every weight (sets, body weight, goals, plates, bars, dumbbells) in the profile's own unit and does its progression, plate math and charts in it. Both clients are lb, and new profiles now start in lb, so input, storage and output are all lb. The fatigue and structural-balance models convert to kg internally for their formulas but only ever show percentages. Body tape measurements are stored in cm and shown in inches. Settings → Units still offers kg (stock coach screen) — leave it on lb.
 - **History wiped (2026-10-26):** all placeholder and test history is gone for both clients; their Push/Pull/Legs plans and settings remain. With no history, the first session of each exercise starts at 0 lb until the coach sets a starting weight in the plan or the client enters one; after that, openGym's progression takes over.
 - **"The timer"** was read as the session clock in the workout header — hidden for clients. The **rest timer** between sets still runs (it's a core feature). Say the word to remove it too.
 - **Opening the Today tab starts the session** (that's what "show the begin-workout screen" means). So the logged duration runs from when the client opened the tab, not their first set.

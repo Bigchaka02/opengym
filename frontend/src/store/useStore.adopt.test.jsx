@@ -13,6 +13,8 @@ vi.mock('../sheets.jsx', () => ({ askAddDeviceData: (...a) => sheetAsk(...a) }))
 
 import { api } from '../lib/api.js'
 import { DEF, hasData, useStore } from './useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 
 const clone = value => JSON.parse(JSON.stringify(value))
 const routine = id => ({ id, name: id, ex: [] })

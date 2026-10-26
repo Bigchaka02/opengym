@@ -6,6 +6,8 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { DEF, useStore } from './store/useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 import { useUI } from './store/useUI.js'
 import { dayOverrideSheet, logPastWorkoutSheet, finishWorkout } from './sheets.jsx'
 import { markAllSetsDone } from './lib/backfill.js'

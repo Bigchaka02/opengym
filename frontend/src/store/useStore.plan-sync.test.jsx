@@ -16,6 +16,8 @@ vi.mock('./useUI.js', () => ({ useUI: { getState: () => ({ toast }) } }))
 
 import { api } from '../lib/api.js'
 import { DEF, useStore } from './useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 import { buildCombinedEntries } from '../lib/session-merge.js'
 import { buildCompletedWorkout } from '../lib/finish-workout.js'
 import { convertWeight } from '../lib/units.js'

@@ -7,6 +7,8 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { beginWorkout, finishWorkout } from './sheets.jsx'
 import { DEF, useStore } from './store/useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 import { useUI } from './store/useUI.js'
 import { isWarmupRow } from './lib/workout-model.js'
 

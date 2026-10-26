@@ -33,7 +33,7 @@ function mount(asClient, extra = {}) {
     id: 'w', d: '2026-10-25', start: Date.now() - 65000, routineIds: ['r'], name: 'Push Day', bw: null, cur: 0, workoutView: 'cards',
     entries: ['0025', '0047'].map(id => ({
       id, rid: 'r', target: { sets: 2, reps: 8 }, planned: { sets: 2, reps: 8 },
-      plan: { kind: 'up', policy: 'linear', why: ['Every rep last time. {0} more.', '2.5 kg'] },
+      plan: { kind: 'up', policy: 'linear', why: ['Every rep last time. {0} more.', '5 lb'] },
       sets: [{ w: 62.5, r: 8, done: false }, { w: 62.5, r: 8, done: false }]
     })),
     ...extra
@@ -62,8 +62,20 @@ describe('the workout screen', () => {
       expect(finishIn('.og-chipline')).toBe(true)
       expect(finishIn('.whdr-bar')).toBe(false)
       expect(labels().filter(l => l === 'Finish')).toHaveLength(1)
+      expect(text()).not.toMatch(/\bkg\b/i)
     })
   }
+
+  it('a profile starts in lb, and nothing on the screen says kg', () => {
+    expect(DEF.unit).toBe('lb')
+    for (const asClient of [true, false]) {
+      mount(asClient)
+      expect(text()).toContain('Weight (lb)')
+      expect(text()).not.toMatch(/\bkg\b/i)
+      act(() => root.unmount()); container.remove()
+    }
+    mount(false)   // for afterEach
+  })
 
   it('for the coach: all of it, as openGym has it', () => {
     mount(false)

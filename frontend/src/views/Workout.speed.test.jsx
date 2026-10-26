@@ -7,6 +7,8 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import Workout from './Workout.jsx'
 import { DEF, useStore } from '../store/useStore.js'
+// Coach/client fork: written for upstream's kg default; the fork defaults to lb (PROJECT.md).
+DEF.unit = 'kg'
 
 vi.mock('../lib/sound.js', () => ({ beep: vi.fn(), vibrate: vi.fn(), alertBuzz: vi.fn(), unlock: vi.fn() }))
 vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
