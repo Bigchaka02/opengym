@@ -7,7 +7,10 @@
 //     gets the stock openGym UI, untouched, acting on that client's data.
 // Switching profile or client reloads the page, so the app's store boots cleanly as that account
 // (its own sign-in logic keeps aside anything the previous account still owed the server).
+// The GitHub Pages build has no server: github-data.js answers the same calls from the repo, and
+// each device needs the repo key once (the picker asks for it, or a setup link brings it).
 import { api } from '../lib/api.js'
+import { GITHUB_DATA, githubToken, setGithubToken, takeTokenFromUrl, checkGithubToken } from './github-data.js'
 
 const SAVED = 'og_profile'          // localStorage: the last profile picked here — { role, uid }
 const CHOSEN = 'og_profile_chosen'  // sessionStorage: picked in this launch, so no picker on reload
@@ -23,6 +26,9 @@ export const currentProfile = () => current
 // The two-tab client UI — false for the coach, and false when no profile is set (stock app).
 export const isClientUI = () => current?.role === 'client'
 export const isCoachUI = () => current?.role === 'coach'
+// The GitHub Pages build, and whether this device still needs the repo key.
+export const usesGithub = () => !!GITHUB_DATA
+export const needsKey = () => usesGithub() && !githubToken()
 
 function readSaved() {
   try {
@@ -52,15 +58,30 @@ async function ensureSession(uid) {
 
 // Before the app boots (main.jsx): the profile picker on a fresh launch, then the session.
 // `showPicker(defaultProfile)` renders the picker and resolves with what was tapped.
-export async function bootProfile(showPicker) {
+async function loadClients() {
   try {
     const r = await api('/api/profiles', { timeout: 6000 })
     if (Array.isArray(r?.profiles) && r.profiles.length) clients = r.profiles
-  } catch { /* keep the defaults */ }
+  } catch (e) {
+    // A key GitHub refuses is dropped, so the picker asks for a new one; offline keeps it.
+    if (e?.code === 'github-auth') setGithubToken(null)
+  }
+}
+
+// The picker's key form: keeps the key only if GitHub accepts it for the repo.
+export async function connectGithub(token) {
+  setGithubToken(token)
+  try { await checkGithubToken() } catch (e) { setGithubToken(null); throw e }
+  await loadClients()
+}
+
+export async function bootProfile(showPicker) {
+  if (usesGithub()) takeTokenFromUrl()
+  await loadClients()
   const saved = readSaved()
   let chosen = false
   try { chosen = sessionStorage.getItem(CHOSEN) === '1' } catch { /* ask */ }
-  const resume = saved && chosen
+  const resume = saved && chosen && !needsKey()
   const p = resume ? saved : await showPicker(saved)
   // A fresh launch starts on the profile's first page, not on whatever the last one left open.
   if (!resume) history.replaceState(null, '', location.pathname + location.search)

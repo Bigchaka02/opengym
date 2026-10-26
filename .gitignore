@@ -7,12 +7,14 @@ media/gif/
 # Coach/client fork: the client profiles' workout data (state-<uid>.json) is kept in the repo.
 data/*
 !data/state-*.json
+!data/profiles.json
 
 # Local config
 .env
 
 # Build output / deps
 frontend/dist/
+.site/
 node_modules/
 *.log
 .DS_Store
