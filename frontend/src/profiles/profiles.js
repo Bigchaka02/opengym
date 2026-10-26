@@ -1,6 +1,6 @@
 // Coach/client fork (PROJECT.md) — who is using openGym on this device.
 //
-// The server only ever has client accounts (Client 1, Client 2 — api/server.js PROFILES). Every
+// The server only ever has client accounts (Haitham and Aliaa — data/profiles.json, or PROFILES in api/server.js). Every
 // profile signs this browser in as one of them, with no passkey:
 //   · a client signs in as themselves and gets the two-tab client UI (ClientShell bits in this folder);
 //   · the coach has no account of his own: he signs in as whichever client his dropdown names and
@@ -17,7 +17,7 @@ const CHOSEN = 'og_profile_chosen'  // sessionStorage: picked in this launch, so
 const COACH_CLIENT = 'og_coach_client'  // localStorage: the client the coach had selected last
 
 // Used until /api/profiles answers (and if it never does).
-let clients = [{ id: 'client1', name: 'Client 1' }, { id: 'client2', name: 'Client 2' }]
+let clients = [{ id: 'client1', name: 'Haitham' }, { id: 'client2', name: 'Aliaa' }]
 let current = null
 
 export const clientList = () => clients

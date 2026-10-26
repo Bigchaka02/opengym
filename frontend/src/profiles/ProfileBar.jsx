@@ -12,11 +12,12 @@ export default function ProfileBar() {
   const [busy, setBusy] = useState(false)
   if (!p) return null
   const coach = p.role === 'coach'
+  const name = coach ? 'Coach' : clientName(p.uid)
   const go = async next => { setBusy(true); try { await switchProfile(next) } finally { setBusy(false) } }
   return <div className="og-pbar">
-    <button className={'og-pbtn' + (coach ? ' coach' : '')} onClick={() => setPicking(true)}
-      aria-label={'Profile: ' + (coach ? 'Coach' : clientName(p.uid)) + '. Switch profile'} title={coach ? 'Coach' : clientName(p.uid)}>
-      <Icon name={coach ? 'clipboard' : 'person'} />
+    <button className="og-pme" onClick={() => setPicking(true)} aria-label={'Profile: ' + name + '. Switch profile'}>
+      <span className={'og-pbtn' + (coach ? ' coach' : '')}><Icon name={coach ? 'clipboard' : 'person'} /></span>
+      <span className="og-pname">{name}</span>
     </button>
     {coach && <label className="og-csel">
       <span className="og-sr">Client</span>

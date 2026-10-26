@@ -50,7 +50,9 @@
   transition:background var(--fast),transform var(--fast);
 }
 .og-pbtn.coach{background:var(--acc-soft);color:var(--acc)}
-.og-pbtn:active{transform:scale(.92)}
+.og-pme{display:flex;align-items:center;gap:10px;max-width:100%;color:var(--label);text-align:start}
+.og-pme:active .og-pbtn{transform:scale(.92)}
+.og-pname{font-size:17px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .og-csel{position:relative;display:inline-flex;align-items:center}
 .og-csel select{
   appearance:none;-webkit-appearance:none;

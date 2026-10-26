@@ -5,10 +5,12 @@
 // Built from the upstream demo generator (frontend/src/lib/demoSeed.js): 12 weeks of
 // Push/Pull/Legs history with body weight, measurements and effort ratings, ending today.
 // Client 2 is the same plan made lighter, shorter and shifted onto Tue/Thu/Sat so the two
-// profiles do not look identical. Overwrites what is there — only run it to start over.
+// profiles do not look identical. Weights in lb (the demo is built in kg, then converted the way
+// Settings → Units converts). Overwrites what is there — only run it to start over.
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { buildDemoState } from '../../frontend/src/lib/demoSeed.js'
+import { convertStateUnit } from '../../frontend/src/lib/units.js'
 
 const dataDir = fileURLToPath(new URL('../../data/', import.meta.url))
 mkdirSync(dataDir, { recursive: true })
@@ -43,7 +45,7 @@ function client2() {
   return s
 }
 
-const seeds = { client1: buildDemoState(), client2: client2() }
+const seeds = { client1: convertStateUnit(buildDemoState(), 'lb'), client2: convertStateUnit(client2(), 'lb') }
 for (const [uid, s] of Object.entries(seeds)) {
   s._ts = Date.now()
   writeFileSync(dataDir + `state-${uid}.json`, JSON.stringify(s))

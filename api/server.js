@@ -152,7 +152,7 @@ db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed
 // with no passkey. PROFILES="uid:Name,uid:Name"; their workout data is DATA_DIR/state-<uid>.json.
 // Each one is created here if db.json does not have it yet. PROFILES=off turns the feature off.
 const PROFILES = /^(0|false|no|off)$/i.test(process.env.PROFILES || '') ? [] :
-  (process.env.PROFILES || 'client1:Client 1,client2:Client 2').split(',').map(s => {
+  (process.env.PROFILES || 'client1:Haitham,client2:Aliaa').split(',').map(s => {
     const [id, ...name] = s.split(':');
     return { id: (id || '').trim().replace(/[^a-zA-Z0-9_-]/g, ''), name: name.join(':').trim() };
   }).filter(p => p.id);

@@ -926,6 +926,9 @@ function ActiveWorkout() {
   const { startRest: liveRest, stopRest, stopWork, work, timer } = useUI()
   const A = S.active
   const editing = !!A.editingWorkoutId
+  // Coach/client fork (PROJECT.md): a client's live session drops the clock, the ⌄, Prev/Next
+  // (the cards swipe), Add exercise, the session note and the bottom Finish button.
+  const lean = isClientUI() && !editing
   // A past workout has no rest to time — the sets were done days ago. The work timer for
   // timed sets stays, since counting a hold is how its duration gets entered.
   const startRest = (A.backfill || editing) ? () => {} : liveRest
@@ -2014,9 +2017,8 @@ function ActiveWorkout() {
     <div className="hdr whdr-bar">
       {editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
-        : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
-      {/* Coach/client fork (PROJECT.md): a client's live session shows no clock. */}
-      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{isClientUI() && !(A.backfill || editing) ? null : <>{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · </>}{t('{0} sets', done + '/' + total)}</div></div>
+        : !lean && <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
+      <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{lean && !A.backfill ? null : <>{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · </>}{t('{0} sets', done + '/' + total)}</div></div>
       <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
       <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
         onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
@@ -2140,13 +2142,13 @@ function ActiveWorkout() {
     </>) : <div className="empty"><div className="ico"><Icon name="shuffle" /></div>{t('Freestyle workout. Add your first exercise and off you go.')}</div>}
 
     <div style={{ height: 12 }} />
-    {!listMode && <div className="row">
+    {!listMode && !lean && <div className="row">
       <Button icon="chevronLeft" disabled={unitIdx <= 0} onClick={() => navigateUnit(-1)}>{t('Prev')}</Button>
       <Button trailingIcon="chevronRight" disabled={unitIdx < 0 || unitIdx >= units.length - 1} onClick={() => navigateUnit(1)}>{t('Next')}</Button>
     </div>}
-    {!listMode && <div style={{ height: 10 }} />}
+    {!listMode && !lean && <div style={{ height: 10 }} />}
     {wc.exerciseButtons && listMode && A.entries.length > 0 && <div className="muted small" style={{ marginBottom: 6 }}>{t('Move, swap and remove below act on the exercise marked {0}.', t('Current'))}</div>}
-    <Button onClick={addExercise} icon="plus">{t('Add exercise')}</Button>
+    {!lean && <Button onClick={addExercise} icon="plus">{t('Add exercise')}</Button>}
     {wc.exerciseButtons && A.entries.length > 0 && <>
       <div style={{ height: 6 }} />
       <div className="row">
@@ -2168,12 +2170,12 @@ function ActiveWorkout() {
     <div style={{ height: 10 }} />
     {/* Wrapping up is when you know how the session went, so the note sits with the finish
         button rather than somewhere in the header. */}
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+    {!lean && <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
       <Button size="sm" icon="note" variant={A.note ? 'tinted' : undefined} onClick={sessionNoteSheet}>
         {A.note ? t('Edit session note') : t('Add session note')}
       </Button>
-    </div>
-    {(() => {
+    </div>}
+    {!lean && (() => {
       const exDone = A.entries.filter(e => e.sets.length && e.sets.every(s => s.done)).length
       const allDone = A.entries.length > 0 && exDone === A.entries.length
       return <button className={allDone ? 'btn primary' : 'btn ghost dim'} onClick={finishWorkout}>

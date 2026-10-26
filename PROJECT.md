@@ -8,7 +8,7 @@ Fork of [openGym](https://github.com/DuarteSantos8/openGym) (AGPL-3.0). This is 
 
 A mobile-friendly **web app** (no install, no server) for one **coach** and their **clients**.
 
-- **Coach** — the full, unmodified openGym UI. Picks a client from a dropdown and sees/changes everything for that client: plans, workouts, stats, settings.
+- **Coach** — the full, unmodified openGym UI. Picks a client (**Haitham** or **Aliaa**) from a dropdown and sees/changes everything for that client: plans, workouts, stats, settings.
 - **Client** — a stripped-down UI with two bottom tabs: **Today** (the workout the coach assigned for today) and **Stats**.
 
 ## Ground rules (from the owner)
@@ -20,11 +20,12 @@ A mobile-friendly **web app** (no install, no server) for one **coach** and thei
 
 ## How it works
 
-- **GitHub Pages hosts the app; the repo is the database.** Each client is one file on `main`: `data/state-client1.json`, `data/state-client2.json` (names in `data/profiles.json`). Phones read and write those files directly through the GitHub API, so every synced change is a commit and every phone sees the same data — no server anywhere.
-- **Profile picker** on every fresh launch: *Coach*, *Client 1*, *Client 2*. Reloads within the same launch don't ask again.
-- **Profile icon** at the top left of every page reopens the picker. For the coach, a **client dropdown** sits under it. The coach is simply working in whichever client's file the dropdown shows.
-- **Client Today tab** opens today's assigned session directly on the stock workout screen, with no weigh-in prompt and no session clock. A rest day or an already-finished session shows a simple card with the next session.
+- **GitHub Pages hosts the app; the repo is the database.** Each client is one file on `main`: `data/state-client1.json` (Haitham), `data/state-client2.json` (Aliaa) — names in `data/profiles.json`. Weights are in **lb**. Phones read and write those files directly through the GitHub API, so every synced change is a commit and every phone sees the same data — no server anywhere.
+- **Profile picker** on every fresh launch: *Coach*, *Haitham*, *Aliaa*. Reloads within the same launch don't ask again.
+- **Profile icon** at the top left of every page, with the profile's name (or "Coach") beside it, reopens the picker. For the coach, a **client dropdown** sits under it. The coach is simply working in whichever client's file the dropdown shows.
+- **Client Today tab** opens today's assigned session directly on the stock workout screen, minus: the weigh-in prompt, the session clock, the ⌄ minimize button, Prev/Next (swipe between exercise cards instead), Add exercise, Add session note, and the bottom Finish button (the Finish pill in the header stays). A rest day or an already-finished session shows a simple card with the next session.
 - **Client Stats tab** is the stock Stats page, plus the pages it links to (History, Structural balance, Muscles, Progress photos, Measurements).
+- **Overscroll bounce:** the page rubber-bands back when pulled past the top or bottom (on for everyone; pull-to-refresh stays off so a long scroll can't reload mid-workout).
 - Under the hood, `frontend/src/profiles/github-data.js` answers the app's server calls (`/api/me`, `/api/data`…) from the repo, porting the server's save rules exactly — so openGym's own sync (revisions, merging two phones' changes, checking for updates every 30 s and on app focus) runs unchanged. Changes are saved ~1.5 s after they're made; edits that don't change the saved profile (like ticking sets mid-workout) don't create commits.
 
 ## Setup (once per phone)
@@ -46,11 +47,13 @@ If the key expires or is revoked, the app asks for a new one.
 
 **Local dev (hot reload):** `cd frontend && npm install && VITE_GITHUB_DATA=Bigchaka02/opengym npm run dev` → http://localhost:5173 (uses the real repo data; paste the key once).
 
-**Add or rename clients:** edit `data/profiles.json`. A client with no `state-<id>.json` yet starts empty; the file is created on their first save.
+**Add or rename clients:** edit `data/profiles.json`. A client with no `state-<id>.json` yet starts empty (and in kg — switch them in Settings → Units, or run the next line); the file is created on their first save.
 
-**Reset the placeholder clients:** `node scripts/profiles/make-seed.mjs`, commit and push `data/` (12 weeks of Push/Pull/Legs history from upstream's demo generator; Client 2 is lighter, 8 weeks, Tue/Thu/Sat).
+**Switch units:** `node scripts/profiles/set-unit.mjs lb` (or `kg`, optionally followed by client ids) converts every stored weight exactly as the app's Settings → Units does, then commit and push `data/`.
 
-**Self-hosted alternative (optional):** the original server setup still works — `docker compose up -d --build` → http://localhost:8080, client accounts from `PROFILES` in `.env` (default `client1:Client 1,client2:Client 2`). It keeps its own copy of the data in `./data`.
+**Reset the placeholder clients:** `node scripts/profiles/make-seed.mjs`, commit and push `data/` (12 weeks of Push/Pull/Legs history in lb from upstream's demo generator; Aliaa's is lighter, 8 weeks, Tue/Thu/Sat). This wipes what was logged.
+
+**Self-hosted alternative (optional):** the original server setup still works — `docker compose up -d --build` → http://localhost:8080, client accounts from `PROFILES` in `.env` (default `client1:Haitham,client2:Aliaa`). It keeps its own copy of the data in `./data`.
 
 **Pull upstream updates:** `git remote add upstream https://github.com/DuarteSantos8/openGym && git fetch upstream && git merge upstream/main`. Conflicts can only land in the files listed below.
 
@@ -62,13 +65,15 @@ If the key expires or is revoked, the app asks for a new one.
 | `frontend/src/lib/api.js` | Hands API calls to the GitHub data layer in the Pages build (one line) |
 | `frontend/src/main.jsx` | Shows the picker and signs in before the app boots |
 | `frontend/src/App.jsx` | Profile bar on every page; client routes + two-tab bar; wait for boot after a profile switch |
-| `frontend/src/views/Workout.jsx` | Hides the session clock for clients (one line) |
+| `frontend/src/views/Workout.jsx` | For a client's live session: hides the clock, ⌄, Prev/Next, Add exercise, session note, bottom Finish |
+| `frontend/src/index.css` | Overscroll bounce on (vertical `overscroll-behavior: contain` instead of `none`) |
 | `api/server.js`, `api/openapi.yaml`, `api/test/*profiles*`, `api/package.json` | Self-hosted mode: `PROFILES` accounts, `GET /api/profiles`, `POST /api/profiles/login`, tests |
 | `docker-compose.yml` | Builds local images instead of pulling upstream ones |
 | `.gitignore`, `data/`, `scripts/profiles/*` | Client data in the repo, its generator, the Pages deploy script |
 
 ## Notes and decisions
 
+- **kg → lb:** both clients' history was converted with the app's own unit switch, so converted weights land on values like 170.5 lb rather than round plate numbers. New entries follow the plan's lb steps.
 - **"The timer"** was read as the session clock in the workout header — hidden for clients. The **rest timer** between sets still runs (it's a core feature). Say the word to remove it too.
 - **Opening the Today tab starts the session** (that's what "show the begin-workout screen" means). So the logged duration runs from when the client opened the tab, not their first set.
 - **In-progress workouts stay on the phone** they were started on (upstream behaviour); the repo gets the workout when it's finished. On one shared test phone, a session started as a client still shows as running when you switch to the coach for that same client.
@@ -87,5 +92,7 @@ If the key expires or is revoked, the app asks for a new one.
 - [x] Client: two tabs — Today (workout screen, no weigh-in, no clock) and Stats
 - [x] Live on GitHub Pages; data read/written straight to `data/` in the repo, no server
 - [x] Tests: API 653/653 pass (3 skipped); frontend all pass except the upstream day-note test above; two-phone sync tested against a simulated GitHub API
-- [ ] Owner: create the GitHub key and connect both phones (Setup above)
+- [x] Owner connected phones; live sync confirmed (commits from the app on `main`)
+- [x] Clients renamed Haitham / Aliaa; profile name beside the icon; everything in lb
+- [x] Client workout decluttered (no ⌄, Prev/Next, Add exercise, session note, bottom Finish); overscroll bounce
 - [ ] Owner to describe the "handful of other small features" for clients

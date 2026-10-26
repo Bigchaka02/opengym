@@ -563,7 +563,7 @@ paths:
       summary: The fixed client profiles (coach/client fork)
       description: >-
         The client profiles the app's profile picker offers, from the PROFILES env var
-        (default "client1:Client 1,client2:Client 2"; "off" for none). See PROJECT.md.
+        (default "client1:Haitham,client2:Aliaa"; "off" for none). See PROJECT.md.
       security: []
       responses:
         '200':

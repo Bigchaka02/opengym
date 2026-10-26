@@ -13,7 +13,7 @@ const [REPO, BRANCH = 'main'] = GITHUB_DATA.split('@')
 const DIR = 'data'
 const TOKEN_KEY = 'og_github_token'   // this device's token for the repo
 const UID_KEY = 'og_github_uid'       // the client "signed in" here (the server's session cookie)
-const DEFAULT_CLIENTS = [{ id: 'client1', name: 'Client 1' }, { id: 'client2', name: 'Client 2' }]
+const DEFAULT_CLIENTS = [{ id: 'client1', name: 'Haitham' }, { id: 'client2', name: 'Aliaa' }]
 
 const ls = {
   get: k => { try { return localStorage.getItem(k) } catch { return null } },
