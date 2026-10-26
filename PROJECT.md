@@ -2,9 +2,11 @@
 
 Fork of [openGym](https://github.com/DuarteSantos8/openGym) (AGPL-3.0). This is the one file for goal, notes, how-to and progress. Keep it current.
 
+**Live app: https://bigchaka02.github.io/opengym/**
+
 ## Goal
 
-A mobile-friendly **web app** (no install) for one **coach** and their **clients**.
+A mobile-friendly **web app** (no install, no server) for one **coach** and their **clients**.
 
 - **Coach** — the full, unmodified openGym UI. Picks a client from a dropdown and sees/changes everything for that client: plans, workouts, stats, settings.
 - **Client** — a stripped-down UI with two bottom tabs: **Today** (the workout the coach assigned for today) and **Stats**.
@@ -12,42 +14,43 @@ A mobile-friendly **web app** (no install) for one **coach** and their **clients
 ## Ground rules (from the owner)
 
 1. Change nothing in openGym except what's explicitly asked for. Coach UI = stock openGym + the profile icon + client dropdown. Nothing else.
-2. Data and security are not a concern. Client data lives in the repo (`data/`).
+2. Data security and privacy don't matter (just the owner and a friend). Client data lives in the repo (`data/`), and every change is written straight to it.
 3. The coach has no account or data of his own — only a profile that acts on the client accounts.
 4. Keep docs to this single file.
 
 ## How it works
 
+- **GitHub Pages hosts the app; the repo is the database.** Each client is one file on `main`: `data/state-client1.json`, `data/state-client2.json` (names in `data/profiles.json`). Phones read and write those files directly through the GitHub API, so every synced change is a commit and every phone sees the same data — no server anywhere.
 - **Profile picker** on every fresh launch: *Coach*, *Client 1*, *Client 2*. Reloads within the same launch don't ask again.
-- **Profile icon** at the top left of every page reopens the picker. For the coach, a **client dropdown** sits under it.
-- Each client is a normal openGym account on the server (`client1`, `client2`). Picking a profile signs the browser in as that client with no passkey (`POST /api/profiles/login`). The coach is simply signed in as whichever client his dropdown shows.
-- Client data is the server's normal per-user file: `data/state-client1.json`, `data/state-client2.json`, committed to the repo. Coach edits and client workouts sync through the server, so the coach's phone and the clients' phones all see the same data.
+- **Profile icon** at the top left of every page reopens the picker. For the coach, a **client dropdown** sits under it. The coach is simply working in whichever client's file the dropdown shows.
 - **Client Today tab** opens today's assigned session directly on the stock workout screen, with no weigh-in prompt and no session clock. A rest day or an already-finished session shows a simple card with the next session.
 - **Client Stats tab** is the stock Stats page, plus the pages it links to (History, Structural balance, Muscles, Progress photos, Measurements).
+- Under the hood, `frontend/src/profiles/github-data.js` answers the app's server calls (`/api/me`, `/api/data`…) from the repo, porting the server's save rules exactly — so openGym's own sync (revisions, merging two phones' changes, checking for updates every 30 s and on app focus) runs unchanged. Changes are saved ~1.5 s after they're made; edits that don't change the saved profile (like ticking sets mid-workout) don't create commits.
 
-## Run it
+## Setup (once per phone)
 
-**Local dev (hot reload)** — two terminals:
+GitHub refuses to let a write key sit inside a public website (it detects and revokes it), so each phone stores the key itself:
 
-```bash
-cd api && npm install && DATA_DIR=../data npm start        # Windows PowerShell: $env:DATA_DIR="../data"; npm start
-cd frontend && npm install && npm run dev                  # open http://localhost:5173
-```
+1. **Make the key (once):** github.com → Settings → Developer settings → Fine-grained tokens → *Generate new token* (https://github.com/settings/personal-access-tokens/new). Repository access: *Only select repositories* → `Bigchaka02/opengym`. Permissions → Repository → **Contents: Read and write**. Longest expiry offered. Copy it.
+2. **Your phone:** open the live app, paste the key, tap *Connect*.
+3. **Your friend's phone:** in the app, tap the profile icon (top left) → *Share setup link for another phone* → send it. Opening that link connects his phone; no pasting.
+4. Optional: *Add to Home Screen* for a full-screen app.
 
-**Docker (closest to production):**
+If the key expires or is revoked, the app asks for a new one.
 
-```bash
-cp .env.example .env
-docker compose up -d --build                               # open http://localhost:8080
-```
+## Maintain
 
-Compose always builds from this repo (`pull_policy: build`). Never use upstream's prebuilt images — they have no profiles.
+**Publish code changes to the live site:** `scripts/profiles/deploy-pages.sh` (Git Bash on Windows) — builds the Pages version and pushes the `gh-pages` branch. Data on `main` is never touched by a deploy.
 
-**On a phone:** same Wi-Fi → `http://<your-PC-LAN-IP>:8080`. From anywhere, put it behind HTTPS (Tailscale, Cloudflare Tunnel, or a small VPS) and set `ORIGIN`/`RP_ID` in `.env` to that address. Add it to the home screen for a full-screen app.
+**Always `git pull --rebase` before pushing to `main`** — the phones commit data there.
 
-**Reset the placeholder clients:** `node scripts/profiles/make-seed.mjs` rewrites both `data/state-*.json` (12 weeks of Push/Pull/Legs history from upstream's demo generator; Client 2 is lighter, 8 weeks, Tue/Thu/Sat). Stop the server first.
+**Local dev (hot reload):** `cd frontend && npm install && VITE_GITHUB_DATA=Bigchaka02/opengym npm run dev` → http://localhost:5173 (uses the real repo data; paste the key once).
 
-**Add or rename clients:** set `PROFILES` in `.env`, e.g. `PROFILES=client1:Sam,client2:Alex,client3:Jo`. New accounts are created on boot with empty data. `PROFILES=off` disables the profile system.
+**Add or rename clients:** edit `data/profiles.json`. A client with no `state-<id>.json` yet starts empty; the file is created on their first save.
+
+**Reset the placeholder clients:** `node scripts/profiles/make-seed.mjs`, commit and push `data/` (12 weeks of Push/Pull/Legs history from upstream's demo generator; Client 2 is lighter, 8 weeks, Tue/Thu/Sat).
+
+**Self-hosted alternative (optional):** the original server setup still works — `docker compose up -d --build` → http://localhost:8080, client accounts from `PROFILES` in `.env` (default `client1:Client 1,client2:Client 2`). It keeps its own copy of the data in `./data`.
 
 **Pull upstream updates:** `git remote add upstream https://github.com/DuarteSantos8/openGym && git fetch upstream && git merge upstream/main`. Conflicts can only land in the files listed below.
 
@@ -55,22 +58,24 @@ Compose always builds from this repo (`pull_policy: build`). Never use upstream'
 
 | File | Change |
 |---|---|
-| `frontend/src/profiles/*` (new) | Picker, profile bar + client dropdown, client tab bar, client Today page, profile/session logic, CSS, tests |
+| `frontend/src/profiles/*` (new) | Picker + GitHub key setup, profile bar + client dropdown, client tab bar, client Today page, profile logic, GitHub data layer, CSS, tests |
+| `frontend/src/lib/api.js` | Hands API calls to the GitHub data layer in the Pages build (one line) |
 | `frontend/src/main.jsx` | Shows the picker and signs in before the app boots |
 | `frontend/src/App.jsx` | Profile bar on every page; client routes + two-tab bar; wait for boot after a profile switch |
 | `frontend/src/views/Workout.jsx` | Hides the session clock for clients (one line) |
-| `api/server.js` | `PROFILES` accounts created on boot; `GET /api/profiles`, `POST /api/profiles/login` |
-| `api/openapi.yaml`, `api/test/profiles.test.js`, `api/test/no-profiles.mjs`, `api/package.json` | Route docs, tests; upstream suites run with profiles off |
+| `api/server.js`, `api/openapi.yaml`, `api/test/*profiles*`, `api/package.json` | Self-hosted mode: `PROFILES` accounts, `GET /api/profiles`, `POST /api/profiles/login`, tests |
 | `docker-compose.yml` | Builds local images instead of pulling upstream ones |
-| `.gitignore`, `data/state-*.json`, `scripts/profiles/make-seed.mjs` | Client data in the repo + its generator |
+| `.gitignore`, `data/`, `scripts/profiles/*` | Client data in the repo, its generator, the Pages deploy script |
 
 ## Notes and decisions
 
 - **"The timer"** was read as the session clock in the workout header — hidden for clients. The **rest timer** between sets still runs (it's a core feature). Say the word to remove it too.
 - **Opening the Today tab starts the session** (that's what "show the begin-workout screen" means). So the logged duration runs from when the client opened the tab, not their first set.
-- **In-progress workouts stay on the device** they were started on (upstream behaviour). The coach sees a client's session once it's finished. On one shared test phone, a session started as a client still shows as running when you switch to the coach for that same client.
-- **Switching profile or client reloads the page.** Anything not yet synced is pushed first, or kept aside by openGym and re-applied next time that client signs in on this device.
-- **Server files not in git:** `data/db.json`, `secret`, `vapid.json`, `audit.log`, `uploads/` — regenerated on boot. Only the clients' workout data is committed. Running the server rewrites the `state-*.json` files, so commit them when you want to save progress to the repo.
+- **In-progress workouts stay on the phone** they were started on (upstream behaviour); the repo gets the workout when it's finished. On one shared test phone, a session started as a client still shows as running when you switch to the coach for that same client.
+- **Two phones editing the same client at the same moment** is handled: GitHub refuses a save over a file that changed since that phone read it, and the app merges both changes and saves again.
+- **Switching profile or client reloads the page.** Anything not yet saved is pushed first.
+- **Coach Settings → Sign out** has nothing to sign out of here; reloading the page puts you back.
+- **Limits:** GitHub allows 5,000 API calls/hour per key — normal use is far below that (update checks that find nothing new are free). A client file over ~1 MB still works (fetched raw), but that's years of logging.
 - Upstream test `sheets.day-note.test.jsx` (calendar day-note) fails on upstream's own code as of this fork — not ours.
 
 ## Tasks and progress
@@ -80,7 +85,7 @@ Compose always builds from this repo (`pull_policy: build`). Never use upstream'
 - [x] Profile icon top left; client dropdown under it for the coach
 - [x] Coach: stock UI, acting on the selected client's data
 - [x] Client: two tabs — Today (workout screen, no weigh-in, no clock) and Stats
-- [x] Client data in the repo, synced through the server
-- [x] Tests: API 653/653 pass (3 skipped); frontend 5,566/5,567 pass — the one failure is the upstream day-note test above
+- [x] Live on GitHub Pages; data read/written straight to `data/` in the repo, no server
+- [x] Tests: API 653/653 pass (3 skipped); frontend all pass except the upstream day-note test above; two-phone sync tested against a simulated GitHub API
+- [ ] Owner: create the GitHub key and connect both phones (Setup above)
 - [ ] Owner to describe the "handful of other small features" for clients
-- [ ] Decide on hosting so phones can reach it from anywhere
