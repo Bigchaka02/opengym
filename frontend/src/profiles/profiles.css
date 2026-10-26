@@ -65,6 +65,20 @@
 .og-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- client UI ---- */
+/* The workout header: profile | session name in the screen's middle | ⋯ — equal side columns keep
+   the name centred whatever sits beside it. */
+.hdr.whdr-bar.og-lean{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px}
+.og-lean .whdr-mid{max-width:min(48vw,280px);min-width:0}
+.og-whdr-me{justify-self:start;min-width:0;max-width:100%}
+.og-whdr-end{justify-self:end}
+.og-pbar.inline{margin:0;min-width:0;max-width:100%}
+.og-pbar.inline .og-pme{gap:8px}
+.og-pbar.inline .og-pname{font-size:15px}
+/* The exercise chips with Finish pinned at the right end; the chips scroll under it. */
+.og-chipline{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.og-chipline-chips{flex:1;min-width:0}
+.og-chipline .chips.wchips{margin-bottom:0}
+.og-chipline .btn.pill.whdr-finish{flex:none;max-width:none}
 #tabbar.og-client-tabs{justify-content:space-evenly}
 #tabbar.og-client-tabs button{flex:0 1 140px}
 .og-today-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 16px}

@@ -254,7 +254,8 @@ function Shell() {
   // Coach/client fork: the profile icon (and the coach's client dropdown) tops every page; a
   // client gets only Today and Stats — Stats with the pages it opens itself.
   const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : <>
-    <ProfileBar />
+    {/* A client's running workout carries the profile in its own header (views/Workout.jsx). */}
+    {!(isClientUI() && l.pathname === '/workout' && S.active) && <ProfileBar />}
     {isClientUI() ? (
     <Routes location={l}>
       <Route path="/workout" element={<ClientToday />} />

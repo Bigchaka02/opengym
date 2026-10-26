@@ -31,6 +31,7 @@ import { afterScrollRestore, scrollRestorePending } from '../components/Modals.j
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
 import { isClientUI } from '../profiles/profiles.js'
+import ProfileBar from '../profiles/ProfileBar.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
@@ -217,7 +218,10 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   // climb, a deload, an added set), or they carry last session's reps ("Your last session").
   // An entry built before plans were stamped, and a freestyle one, has no plan to show.
   const planned = entry.planned && mode !== 'cardio' ? entry.planned : null
-  const planLine = (() => {
+  // Coach/client fork (PROJECT.md): a client's live session drops the plan line, "Last time" and
+  // the progression line, in every view.
+  const lean = isClientUI() && !editing
+  const planLine = lean ? null : (() => {
     if (!planned) return null
     const today = entry.target || {}
     // A pyramid reads as its targets, as on the routine row: "12 · 8 · 6 · Max · 12", never the
@@ -253,7 +257,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
   const refAction = refBest ? t('Show last time instead') : t('Show your best set instead')
   // The button's text is the reference, which says nothing about what a tap does; its name
   // carries both, the reference first as it reads on screen, then the switch.
-  const refLine = refText ? <button type="button" className="refline small dim"
+  const refLine = refText && !lean ? <button type="button" className="refline small dim"
     title={refAction} aria-label={`${refText}. ${refAction}`}
     onClick={() => update(s => { s.logRef = refBest ? 'last' : 'best' })}>
     {/* Each set on its own left-to-right island. In Arabic the first one followed the label's
@@ -682,7 +686,7 @@ function ExerciseBlock({ entryIdx, compact, dense, editing, onToggle, onToggleSi
     {entry.note && <div className="exnote">{entry.note}</div>}
     {planLine}
     {refLine}
-    {guidance && onProgressionSettings && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
+    {guidance && onProgressionSettings && !lean && <button type="button" className={'progline' + (plan.kind === 'deload' ? ' warn' : '')}
       aria-label={t('Open exercise settings')} onClick={onProgressionSettings}>
       <Icon name={plan.kind === 'up' ? 'arrowUp' : plan.kind === 'deload' ? 'arrowDown' : 'lightbulb'} />
       <span><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}</span>
@@ -2005,6 +2009,15 @@ function ActiveWorkout() {
     }
   }, [])
 
+  const finishBtn = <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
+    onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
+  // Coach/client fork (PROJECT.md): a client's Finish sits at the right end of the exercise chips,
+  // in every view (in the list and compact views those ride in the pinned header).
+  const leanChips = lean && <div className="og-chipline">
+    <div className="og-chipline-chips">{chipRow || (!listMode && <div className="muted small">{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>)}</div>
+    {finishBtn}
+  </div>
+
   return <WorkoutScrollAnchor enabled={collapseOn} collapsed={[...collapsed].join(',')}>
     {/* In list mode the whole session scrolls under the header, so the header (name, clock,
         set counter, discard/finish, progress) stays pinned — the one thing you want in view
@@ -2014,19 +2027,22 @@ function ActiveWorkout() {
         in the editor of a saved workout it is the ✕ that closes the editor. Discard is in the ⋯
         menu now, and Finish is a labelled pill rather than a check that looked like a set tick: it
         opens the Finish sheet (Finish and save, Discard), the editor's Save saves at once. */}
-    <div className="hdr whdr-bar">
-      {editing
+    {/* Coach/client fork: for a client the profile takes the ⌄'s place, the session's name sits in
+        the middle of the screen and Finish moves down beside the exercise chips (leanChips). */}
+    <div className={'hdr whdr-bar' + (lean ? ' og-lean' : '')}>
+      {lean ? <div className="og-whdr-me"><ProfileBar inline /></div>
+        : editing
         ? <button className="iconbtn" aria-label={t('Close editor')} title={t('Close editor')} onClick={() => exitWorkoutEdit()}><Icon name="xmark" /></button>
-        : !lean && <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
+        : <button className="iconbtn" aria-label={t('Minimize')} title={t('Minimize')} onClick={() => nav('/home')}><Icon name="chevronDown" /></button>}
       <div className="whdr-mid"><div className="whdr-name">{A.name}</div><div className="sub">{lean && !A.backfill ? null : <>{(A.backfill || editing) ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · </>}{t('{0} sets', done + '/' + total)}</div></div>
-      <button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
-      <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
-        onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
+      {lean ? <div className="og-whdr-end"><button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button></div>
+        : <><button className="iconbtn" aria-label={t('Workout options')} title={t('Workout options')} onClick={openViewMenu}><Icon name="more" /></button>
+          {finishBtn}</>}
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
     {/* In the list the chips ride in the pinned header, so any exercise is one tap away from
         anywhere in a long stack. */}
-    {listMode && chipRow}
+    {listMode && (lean ? leanChips : chipRow)}
     </div>
     {editing && <p className="muted small">{t('Editing a saved workout. Date and duration stay unchanged.')}</p>}
     {A.backfill && <div className="muted small" style={{ marginBottom: 8 }}>{t('Logging a past workout, so no rest timers.')}</div>}
@@ -2087,7 +2103,7 @@ function ActiveWorkout() {
     ) : <>
       {/* The chips stand in for "Exercise 2 / 5": the number is on the current chip, and the
           others say what is done and what is waiting (#323). */}
-      {chipRow || <div className="muted small" style={{ marginBottom: 6 }}>{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>}
+      {leanChips || chipRow || <div className="muted small" style={{ marginBottom: 6 }}>{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>}
       <SwipeCards index={unitIdx} count={units.length} revision={A}
         timerKey={timer && `${timer.endsAt}:${timer.forIdx ?? ''}`} workKey={work?.endsAt}
         onNavigate={navigateUnit} renderPreview={direction => {

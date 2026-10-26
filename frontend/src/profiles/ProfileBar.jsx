@@ -6,7 +6,8 @@ import Icon from '../components/Icon.jsx'
 import ProfilePicker from './ProfilePicker.jsx'
 import { clientList, clientName, currentProfile, profileFor, switchProfile } from './profiles.js'
 
-export default function ProfileBar() {
+// `inline`: inside a client's workout header (views/Workout.jsx), in place of the page-top bar.
+export default function ProfileBar({ inline = false }) {
   const p = currentProfile()
   const [picking, setPicking] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -14,7 +15,7 @@ export default function ProfileBar() {
   const coach = p.role === 'coach'
   const name = coach ? 'Coach' : clientName(p.uid)
   const go = async next => { setBusy(true); try { await switchProfile(next) } finally { setBusy(false) } }
-  return <div className="og-pbar">
+  return <div className={'og-pbar' + (inline ? ' inline' : '')}>
     <button className="og-pme" onClick={() => setPicking(true)} aria-label={'Profile: ' + name + '. Switch profile'}>
       <span className={'og-pbtn' + (coach ? ' coach' : '')}><Icon name={coach ? 'clipboard' : 'person'} /></span>
       <span className="og-pname">{name}</span>
