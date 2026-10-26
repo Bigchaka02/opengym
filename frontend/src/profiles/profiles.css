@@ -1,0 +1,59 @@
+/* Coach/client fork (PROJECT.md): profile picker, the top-left profile bar, the client's Today
+   card. Built only from the app's own tokens (index.css), so it follows theme and accent. */
+
+/* ---- profile picker: on launch, and from the top-left icon ---- */
+.og-picker{
+  position:fixed;inset:0;z-index:2147483100;overflow-y:auto;
+  background:var(--bg);color:var(--label);
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(var(--sat) + 24px) var(--pad) calc(var(--sab) + 24px);
+  animation:og-in var(--med) var(--ease);
+}
+@keyframes og-in{from{opacity:0}}
+.og-picker-in{width:100%;max-width:420px;position:relative}
+.og-picker .og-picker-x{position:absolute;top:-8px;inset-inline-end:0}
+.og-picker-logo{
+  width:56px;height:56px;border-radius:16px;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  background:var(--acc);color:var(--on-acc);--icon-stroke:2;
+}
+.og-picker h1{font-size:26px;font-weight:700;letter-spacing:-.022em;text-align:center;margin:0 0 22px}
+.og-tile{min-height:68px}
+.og-tile .tt,.og-tile .ss{display:block}
+.og-tile .tt{font-weight:600}
+.og-tile.on{box-shadow:inset 0 0 0 1.5px var(--acc)}
+.og-tile .og-tick{color:var(--acc);font-size:20px;--icon-stroke:2.2}
+.og-av{
+  width:42px;height:42px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:21px;
+  background:var(--surface-3);color:var(--label);
+}
+.og-av.coach{background:var(--acc);color:var(--on-acc)}
+
+/* ---- the profile bar: top left of every page, scrolls with it ---- */
+.og-pbar{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:2px 0 4px}
+.og-pbtn{
+  width:36px;height:36px;border-radius:50%;flex:none;font-size:19px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);color:var(--label);
+  transition:background var(--fast),transform var(--fast);
+}
+.og-pbtn.coach{background:var(--acc-soft);color:var(--acc)}
+.og-pbtn:active{transform:scale(.92)}
+.og-csel{position:relative;display:inline-flex;align-items:center}
+.og-csel select{
+  appearance:none;-webkit-appearance:none;
+  background:var(--surface);border:none;border-radius:999px;
+  font-size:13px;font-weight:600;color:var(--label);
+  padding:5px 28px 5px 12px;min-height:28px;cursor:pointer;
+}
+.og-csel select:disabled{opacity:.5}
+.og-csel .icn{position:absolute;inset-inline-end:10px;font-size:12px;pointer-events:none;color:var(--label-2);--icon-stroke:2.2}
+.og-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- client UI ---- */
+#tabbar.og-client-tabs{justify-content:space-evenly}
+#tabbar.og-client-tabs button{flex:0 1 140px}
+.og-today-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 16px}
+.og-today-ic{font-size:34px;color:var(--label-2);margin-bottom:4px}
+.og-today-empty .og-today-t{font-size:20px;font-weight:600;letter-spacing:-.018em}

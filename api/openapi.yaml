@@ -556,6 +556,59 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Ok' }
 
+  /api/profiles:
+    get:
+      tags: [auth]
+      operationId: listProfiles
+      summary: The fixed client profiles (coach/client fork)
+      description: >-
+        The client profiles the app's profile picker offers, from the PROFILES env var
+        (default "client1:Client 1,client2:Client 2"; "off" for none). See PROJECT.md.
+      security: []
+      responses:
+        '200':
+          description: The profiles, in order.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+
+  /api/profiles/login:
+    post:
+      tags: [auth]
+      operationId: profileLogin
+      summary: Sign in as a client profile, no passkey (coach/client fork)
+      description: >-
+        Sets the session cookie for one of the PROFILES accounts. No credential: the fork's
+        profiles are deliberately open (PROJECT.md). 404 for any other uid.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uid]
+              properties:
+                uid: { type: string }
+      responses:
+        '200':
+          description: Signed in.
+          headers:
+            Set-Cookie:
+              description: The session cookie.
+              schema: { type: string }
+        '404':
+          description: Not one of the profiles.
+
   /api/logout/all:
     post:
       tags: [auth]

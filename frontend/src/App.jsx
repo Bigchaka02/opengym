@@ -56,6 +56,11 @@ import CoachChat from './views/CoachChat.jsx'
 import Measurements from './views/Measurements.jsx'
 import CoachIntake from './views/CoachIntake.jsx'
 import CoachSetup from './views/CoachSetup.jsx'
+// Coach/client fork (PROJECT.md)
+import { currentProfile, isClientUI } from './profiles/profiles.js'
+import ProfileBar from './profiles/ProfileBar.jsx'
+import ClientTabBar from './profiles/ClientTabBar.jsx'
+import ClientToday from './profiles/ClientToday.jsx'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -222,19 +227,23 @@ function Shell() {
   // bottom edge in its place. Its header's ⌄ goes back to the app, where the tab bar's Resume
   // brings it back. Finishing stays in the workout's own header and list, not in a bottom button
   // (owner, 2026-10-14: the bottom Complete / Finish button of #563 is gone again).
-  const inWorkout = loc.pathname === '/workout' && !!S.active
+  // Coach/client fork: the client's two tabs stay on screen during a workout too.
+  const inWorkout = loc.pathname === '/workout' && !!S.active && !isClientUI()
   useEffect(() => {
     document.body.classList.toggle('no-tabbar', inWorkout)
     return () => document.body.classList.remove('no-tabbar')
   }, [inWorkout])
   // The chat owns the bottom of the screen as well: its composer sits where the tabs would be.
   // The first-launch card has no tabs either: they changed the route behind it.
-  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || permSteps
+  // Coach/client fork: a client has two tabs of their own instead (ClientTabBar below).
+  const noTabs = inWorkout || loc.pathname === '/coach' || needsMobileOnboarding || permSteps || isClientUI()
 
   const authed = user || isGuest
   // The boot screen in index.html covers the start; it goes once there is something to show.
   useEffect(() => { if (ready || authed) hideBoot() }, [ready, authed])
-  if (!ready && !authed) return (
+  // Coach/client fork: with a profile chosen, wait for boot — this browser may still hold the
+  // previous client's copy until the new one has signed in and pulled.
+  if (!ready && (!authed || currentProfile())) return (
     <div id="app">
       <div style={{ paddingTop: '44vh', display: 'flex', justifyContent: 'center', fontSize: 34, color: 'var(--label-3)' }}>
         <Icon name="dumbbell" />
@@ -242,7 +251,22 @@ function Shell() {
     </div>
   )
 
-  const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : (
+  // Coach/client fork: the profile icon (and the coach's client dropdown) tops every page; a
+  // client gets only Today and Stats — Stats with the pages it opens itself.
+  const view = l => (!authed ? <Login /> : needsMobileOnboarding ? <MobileOnboarding /> : permSteps ? <PermissionSteps /> : <>
+    <ProfileBar />
+    {isClientUI() ? (
+    <Routes location={l}>
+      <Route path="/workout" element={<ClientToday />} />
+      <Route path="/stats" element={<Stats />} />
+      <Route path="/history" element={<History />} />
+      <Route path="/muscles" element={<Muscles />} />
+      <Route path="/structural-balance" element={<StructuralBalance />} />
+      <Route path="/progress-photos" element={<ProgressPhotos />} />
+      <Route path="/measurements" element={<Measurements />} />
+      <Route path="*" element={<Navigate to="/workout" replace />} />
+    </Routes>
+    ) : (
     <Routes location={l}>
       <Route path="/home" element={<Home />} />
       {/* Gym check-in — switched off in Settings, the route falls through to the
@@ -270,7 +294,8 @@ function Shell() {
       <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
-  ))
+    )}
+  </>)
   const showPreview = !!preview && preview !== loc.pathname && authed && !needsMobileOnboarding && !permSteps
 
   return (
@@ -289,6 +314,8 @@ function Shell() {
           including on the sign-in screen, when the server has just ended the session. */}
       <SyncBanner />
       {!noTabs && <TabBar onStart={startFlow} />}
+      {/* Coach/client fork: the client's two tabs in place of the five, signed-in screens only. */}
+      {isClientUI() && authed && !needsMobileOnboarding && !permSteps && <ClientTabBar />}
       <RestTimer />
       <Modals />
       <Toast />

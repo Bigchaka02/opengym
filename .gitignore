@@ -3,8 +3,10 @@
 media/img/
 media/gif/
 
-# Runtime data — users, passkeys, per-user state, session secret
-data/
+# Runtime data — users, passkeys, per-user state, session secret.
+# Coach/client fork: the client profiles' workout data (state-<uid>.json) is kept in the repo.
+data/*
+!data/state-*.json
 
 # Local config
 .env

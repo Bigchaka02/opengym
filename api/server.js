@@ -148,6 +148,23 @@ db.creds = db.creds || [];
 db.subs = db.subs || [];
 db.invites = db.invites || [];
 db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
+// Coach/client fork (PROJECT.md): fixed client profiles the app's profile picker signs in as,
+// with no passkey. PROFILES="uid:Name,uid:Name"; their workout data is DATA_DIR/state-<uid>.json.
+// Each one is created here if db.json does not have it yet. PROFILES=off turns the feature off.
+const PROFILES = /^(0|false|no|off)$/i.test(process.env.PROFILES || '') ? [] :
+  (process.env.PROFILES || 'client1:Client 1,client2:Client 2').split(',').map(s => {
+    const [id, ...name] = s.split(':');
+    return { id: (id || '').trim().replace(/[^a-zA-Z0-9_-]/g, ''), name: name.join(':').trim() };
+  }).filter(p => p.id);
+{
+  let added = false;
+  for (const p of PROFILES) {
+    if (db.users.some(u => u.id === p.id)) continue;
+    db.users.push({ id: p.id, name: p.name || p.id, created: new Date().toISOString() });
+    added = true;
+  }
+  if (added) saveDb();
+}
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
 // One owner per instance, any number of admins. Admins run the place day to day (users, invites,
 // the Coach); the owner is the one admin the others cannot act on: only the owner appoints or
@@ -2274,6 +2291,18 @@ const routes = {
     const user = readSession(req);
     if (user) audit(req, 'auth.logout', { user });
     json(res, 200, { ok: true }, { 'Set-Cookie': clearCookie });
+  },
+
+  // Coach/client fork: the profile picker signs this browser in as one of the PROFILES above.
+  'GET /api/profiles': async (req, res) => {
+    json(res, 200, { profiles: PROFILES.map(p => ({ id: p.id, name: db.users.find(u => u.id === p.id)?.name || p.name })) });
+  },
+  'POST /api/profiles/login': async (req, res) => {
+    const body = await readBody(req);
+    const user = PROFILES.some(p => p.id === body.uid) ? db.users.find(u => u.id === body.uid) : null;
+    if (!user) return json(res, 404, { error: 'unknown profile' });
+    audit(req, 'auth.login.ok', { user });
+    json(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(user) });
   },
 
   // "Sign out everywhere" — bumps this user's session version, which invalidates every cookie
