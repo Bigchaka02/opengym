@@ -26,6 +26,21 @@ function loggedToday(S) {
   return (routines.every(r => covered(r.id)) && logged.at(-1)) || null
 }
 
+// Today's open day, laid out before the coach last changed today's plan (another routine for the
+// day, or the routine itself edited) and with nothing ticked yet: it is laid out again from the
+// plan as it is now. A day with a tick on it is the client's own and stays as it is. `planAt` is
+// the newest routine stamp the day was built from — the same clock as the routine's own stamp, so
+// a phone whose clock runs behind never sees its fresh day as out of date; a day from before it
+// was kept is judged by when it was laid out.
+const planStamp = (S, ids) => Math.max(0, ...ids.map(id => Number(S.routines.find(r => r.id === id)?._ts) || 0))
+export function planChangedSince(S, A, today = todayISO()) {
+  if (!A || A.editingWorkoutId || A.backfill || A.d !== today || setsDoneActive(A) > 0) return false
+  const ids = effectiveRoutineIds(S, today)
+  const had = A.routineIds || []
+  if (ids.length !== had.length || ids.some(id => !had.includes(id))) return true
+  return planStamp(S, ids) > (Number(A.planAt ?? A.start) || 0)
+}
+
 // A day that is over: kept if anything on it was ticked, dropped if not.
 export function closeEarlierDay() {
   const A = useStore.getState().S.active
@@ -50,21 +65,25 @@ export default function ClientToday() {
   }, [])
   const today = todayISO()
   const earlier = !!S.active && !S.active.editingWorkoutId && S.active.d !== today
+  const replan = planChangedSince(S, S.active, today)
   const planned = effectiveRoutines(S, today).some(r => r.ex.length)
   const done = loggedToday(S)
   const start = !S.active && planned && !done
   useEffect(() => { if (earlier) closeEarlierDay() }, [earlier])
+  useEffect(() => {
+    if (replan && planChangedSince(useStore.getState().S, useStore.getState().S.active)) useStore.getState().update(s => { s.active = null })
+  }, [replan])
   useEffect(() => {
     // The live store, not this render's: StrictMode runs this twice, and the first run started it.
     if (start && !useStore.getState().S.active) {
       beginWorkout(effectiveRoutineIds(useStore.getState().S, todayISO()), null)
       // Laid out by this tab, not built by the coach: the one kind of open day a profile switch
       // may clear while nothing on it is ticked (profiles.js dropUntouchedClientDay).
-      useStore.getState().update(s => { if (s.active) s.active.clientDay = true })
+      useStore.getState().update(s => { if (s.active) { s.active.clientDay = true; s.active.planAt = planStamp(s, s.active.routineIds || []) } })
     }
   }, [start])
 
-  if (earlier || start) return null
+  if (earlier || replan || start) return null
   if (S.active) return <Workout />
   const next = nextTrainingDay(S, today)
   return <div className="narrow">

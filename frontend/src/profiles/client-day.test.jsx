@@ -21,7 +21,7 @@ const { default: Workout } = await import('../views/Workout.jsx')
 const { DEF, useStore } = await import('../store/useStore.js')
 const { useUI } = await import('../store/useUI.js')
 const { finishWorkoutQuietly } = await import('../sheets.jsx')
-const { closeEarlierDay } = await import('./ClientToday.jsx')
+const { closeEarlierDay, planChangedSince } = await import('./ClientToday.jsx')
 const { todayISO, isoOf } = await import('../lib/format.js')
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -157,5 +157,33 @@ describe("a client's day", () => {
     setState(day(todayISO(), [open(), open()]))
     closeEarlierDay()
     expect(useStore.getState().S.active?.id).toBe('day')
+  })
+})
+
+describe("a client's open day follows the coach's plan until something is ticked", () => {
+  const plan = (routineTs = 1000, today = todayISO()) => {
+    const S = JSON.parse(JSON.stringify(DEF))
+    S.routines = [{ id: 'push', name: 'Push Day', ex: [{ id: '0576', sets: 3, reps: 10 }], _ts: routineTs }, { id: 'pull', name: 'Pull Day', ex: [{ id: '0027', sets: 3, reps: 10 }], _ts: 1 }]
+    S.dayPlan = { [today]: 'push' }
+    return S
+  }
+  const laidOut = (extra = {}, sets = [open()]) => ({ ...day(todayISO(), sets), routineIds: ['push'], clientDay: true, planAt: 1000, ...extra })
+
+  it('stays when nothing changed', () => {
+    expect(planChangedSince(plan(1000), laidOut())).toBe(false)
+  })
+  it('is laid out again when the routine was edited after it was built', () => {
+    expect(planChangedSince(plan(2000), laidOut())).toBe(true)
+  })
+  it('is laid out again when today now has another routine', () => {
+    const S = plan(1000); S.dayPlan[todayISO()] = 'pull'
+    expect(planChangedSince(S, laidOut())).toBe(true)
+  })
+  it("stays once a set is ticked: that day is the client's own", () => {
+    expect(planChangedSince(plan(2000), laidOut({}, [ticked(Date.now()), open()]))).toBe(false)
+  })
+  it('a day from before planAt was kept is judged by when it was laid out', () => {
+    expect(planChangedSince(plan(5000), laidOut({ planAt: undefined, start: 4000 }))).toBe(true)
+    expect(planChangedSince(plan(3000), laidOut({ planAt: undefined, start: 4000 }))).toBe(false)
   })
 })
