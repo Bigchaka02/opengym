@@ -96,11 +96,7 @@ export async function switchProfile(p) {
   // it now; anything that still cannot get there is kept aside by the store's own sign-in logic.
   try {
     const { useStore } = await import('../store/useStore.js')
-    // A client's day with nothing ticked yet is only a view of the plan, laid out again the next
-    // time Today opens: it does not stay behind as a workout "in progress" for the next profile.
-    const { setsDoneActive } = await import('../lib/history.js')
-    const A = useStore.getState().S.active
-    if (current?.role === 'client' && A && !A.editingWorkoutId && !setsDoneActive(A)) useStore.getState().update(s => { s.active = null })
+    if (current?.role === 'client') await dropUntouchedClientDay(useStore)
     await Promise.race([useStore.getState().pushState(), new Promise(r => setTimeout(r, 4000))])
   } catch { /* kept aside on the next boot */ }
   // A new role starts on its own first page; the coach changing client stays where he is.
@@ -109,6 +105,15 @@ export async function switchProfile(p) {
   await ensureSession(p.uid)
   if (roleChanged) history.replaceState(null, '', location.pathname + location.search)
   window.location.reload()
+}
+
+// A day the client's Today tab laid out itself (`clientDay`), with nothing ticked yet, is only a
+// view of the plan, laid out again the next time Today opens: it does not stay behind as a workout
+// "in progress" for the next profile. A workout the coach started or edited is never cleared here.
+export async function dropUntouchedClientDay(useStore) {
+  const { setsDoneActive } = await import('../lib/history.js')
+  const A = useStore.getState().S.active
+  if (A?.clientDay && !A.editingWorkoutId && !setsDoneActive(A)) useStore.getState().update(s => { s.active = null })
 }
 
 // The profile a picker tile stands for. The coach goes back to the client he had last.

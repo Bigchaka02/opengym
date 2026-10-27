@@ -56,7 +56,12 @@ export default function ClientToday() {
   useEffect(() => { if (earlier) closeEarlierDay() }, [earlier])
   useEffect(() => {
     // The live store, not this render's: StrictMode runs this twice, and the first run started it.
-    if (start && !useStore.getState().S.active) beginWorkout(effectiveRoutineIds(useStore.getState().S, todayISO()), null)
+    if (start && !useStore.getState().S.active) {
+      beginWorkout(effectiveRoutineIds(useStore.getState().S, todayISO()), null)
+      // Laid out by this tab, not built by the coach: the one kind of open day a profile switch
+      // may clear while nothing on it is ticked (profiles.js dropUntouchedClientDay).
+      useStore.getState().update(s => { if (s.active) s.active.clientDay = true })
+    }
   }, [start])
 
   if (earlier || start) return null

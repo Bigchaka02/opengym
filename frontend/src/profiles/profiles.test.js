@@ -73,3 +73,27 @@ describe('profileFor', () => {
     expect(P.profileFor('client1')).toEqual({ role: 'client', uid: 'client1' })
   })
 })
+
+describe('dropUntouchedClientDay', () => {
+  const store = active => {
+    const st = { S: { active } }
+    return { st, getState: () => ({ S: st.S, update: fn => { const S = JSON.parse(JSON.stringify(st.S)); fn(S); st.S = S } }) }
+  }
+  const day = (extra, done = false) => ({ id: 'a', d: '2026-10-27', start: 1, entries: [{ id: '0025', sets: [{ w: 135, r: 8, done }] }], ...extra })
+
+  it("clears the day Today laid out when nothing on it is ticked", async () => {
+    const P = await fresh()
+    const s = store(day({ clientDay: true }))
+    await P.dropUntouchedClientDay(s)
+    expect(s.st.S.active).toBeNull()
+  })
+
+  it('keeps a workout the coach started or edited, and a client day with a tick', async () => {
+    const P = await fresh()
+    for (const active of [day({}), day({ clientDay: true }, true)]) {
+      const s = store(active)
+      await P.dropUntouchedClientDay(s)
+      expect(s.st.S.active?.id).toBe('a')
+    }
+  })
+})
