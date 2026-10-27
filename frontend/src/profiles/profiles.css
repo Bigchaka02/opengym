@@ -79,6 +79,8 @@
 .og-chipline-chips{flex:1;min-width:0}
 .og-chipline .chips.wchips{margin-bottom:0}
 .og-chipline .btn.pill.whdr-finish{flex:none;max-width:none}
+/* Dimmed until every set is ticked (still tappable: it asks to end the day as it is). */
+.btn.pill.whdr-finish.og-dim{opacity:.4}
 #tabbar.og-client-tabs{justify-content:space-evenly}
 #tabbar.og-client-tabs button{flex:0 1 140px}
 .og-today-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 16px}

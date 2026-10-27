@@ -26,7 +26,7 @@ import WorkoutThumb, { hasWorkoutMedia } from '../components/WorkoutThumb.jsx'
 import { workoutSettingsSheet } from '../components/WorkoutSettingsSheet.jsx'
 import { durationSheet } from '../components/DurationWheel.jsx'
 import { REST_MAX, fmtRest } from '../lib/duration.js'
-import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet, finishWorkoutNow } from '../sheets.jsx'
+import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, exitWorkoutEdit, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet, addRoutineToSessionSheet, finishWorkoutSheet, finishWorkoutNow, finishWorkoutQuietly } from '../sheets.jsx'
 import { afterScrollRestore, scrollRestorePending } from '../components/Modals.jsx'
 import { effortColor } from '../lib/effort.js'
 import Elapsed from '../components/Elapsed.jsx'
@@ -1481,7 +1481,7 @@ function ActiveWorkout() {
         noProgSwitchable && { icon: 'chartLineSlash', label: t('Don’t count for progression'), sub: t('Every exercise in this workout'), on: sessionNoProg(A), onClick: toggleSessionNoProg },
       ] },
       { items: [
-        !editing && { icon: 'trash', label: t('Discard workout'), danger: true, onClick: discardWorkout },
+        !editing && !lean && { icon: 'trash', label: t('Discard workout'), danger: true, onClick: discardWorkout },
       ] },
     ],
   })
@@ -2010,8 +2010,16 @@ function ActiveWorkout() {
     }
   }, [])
 
-  const finishBtn = <button className="btn primary pill whdr-finish" aria-label={editing ? t('Save changes') : undefined}
-    onClick={() => (editing ? finishWorkout() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
+  // Coach/client fork (PROJECT.md): a client's Finish is dimmed until every set is ticked. With
+  // all of them ticked it saves at once; before that it asks to end the day's workout as it is.
+  // No discard on the client side, here or in the ⋯ menu.
+  const allSetsDone = total > 0 && done >= total
+  const clientFinish = () => allSetsDone ? finishWorkoutQuietly() : menuSheet({
+    title: 'End Today’s Incomplete Workout?',
+    sections: [{ items: [{ icon: 'flag', accent: true, label: 'End Workout', onClick: finishWorkoutQuietly }] }],
+  })
+  const finishBtn = <button className={'btn primary pill whdr-finish' + (lean && !allSetsDone ? ' og-dim' : '')} aria-label={editing ? t('Save changes') : undefined}
+    onClick={() => (editing ? finishWorkout() : lean ? clientFinish() : finishWorkoutSheet({ onDiscard: discardWorkout }))}>{editing ? t('Save') : t('Finish')}</button>
   // Coach/client fork (PROJECT.md): a client's Finish sits at the right end of the exercise chips,
   // in every view (in the list and compact views those ride in the pinned header).
   const leanChips = lean && <div className="og-chipline">

@@ -42,6 +42,71 @@ beforeEach(() => { useUI.getState().stopRest() })
 let root, container
 afterEach(() => { if (root) { act(() => root.unmount()); container.remove(); root = null } })
 
+const mountDay = sets => {
+  setState(day(todayISO(), sets))
+  container = document.body.appendChild(document.createElement('div'))
+  root = createRoot(container)
+  act(() => root.render(<MemoryRouter><Workout /></MemoryRouter>))
+}
+const finishBtn = () => container.querySelector('.og-chipline .whdr-finish')
+const lastSheet = () => {
+  const sheet = useUI.getState().sheets.at(-1)
+  if (!sheet) return null
+  const el = document.body.appendChild(document.createElement('div'))
+  const r = createRoot(el)
+  act(() => r.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
+  return { el, text: el.textContent, done: () => { act(() => r.unmount()); el.remove() } }
+}
+
+describe("a client's Finish", () => {
+  beforeEach(() => { client = true; useUI.setState({ sheets: [] }) })
+
+  it('is dimmed until every set is ticked', () => {
+    mountDay([open(), open()])
+    expect(finishBtn().classList.contains('og-dim')).toBe(true)
+    act(() => container.querySelector('[role="checkbox"][aria-label="Set 1 done"]').click())
+    expect(finishBtn().classList.contains('og-dim')).toBe(true)
+    act(() => container.querySelector('[role="checkbox"][aria-label="Set 2 done"]').click())
+    expect(finishBtn().classList.contains('og-dim')).toBe(false)
+  })
+
+  it('with every set ticked: saves at once, nothing pops up', () => {
+    const at = Date.now() - 60000
+    mountDay([ticked(at), ticked(at + 30000)])
+    act(() => finishBtn().click())
+    expect(useUI.getState().sheets).toHaveLength(0)
+    const S = useStore.getState().S
+    expect(S.active).toBeNull()
+    expect(S.workouts).toHaveLength(1)
+  })
+
+  it('with sets left: asks to end the incomplete workout, End Workout saves it, no Discard anywhere', () => {
+    mountDay([ticked(Date.now() - 60000), open()])
+    act(() => finishBtn().click())
+    const sheet = lastSheet()
+    expect(sheet.text).toContain('End Today’s Incomplete Workout?')
+    expect(sheet.text).not.toContain('Discard')
+    act(() => [...sheet.el.querySelectorAll('.menu-item')].find(b => b.textContent.includes('End Workout')).click())
+    sheet.done()
+    const S = useStore.getState().S
+    expect(S.active).toBeNull()
+    expect(S.workouts).toHaveLength(1)
+  })
+
+  it("the ⋯ menu has no Discard for a client, and still has it for the coach", () => {
+    for (const asClient of [true, false]) {
+      client = asClient
+      useUI.setState({ sheets: [] })
+      mountDay([open(), open()])
+      act(() => container.querySelector('[aria-label="Workout options"]').click())
+      const sheet = lastSheet()
+      expect(sheet.text.includes('Discard workout'), asClient ? 'client' : 'coach').toBe(!asClient)
+      sheet.done()
+      act(() => root.unmount()); container.remove(); root = null
+    }
+  })
+})
+
 describe("a client's day", () => {
   for (const asClient of [true, false]) {
     it(`${asClient ? 'client: no rest timer' : 'coach: the rest timer as openGym has it'} after a tick`, () => {
